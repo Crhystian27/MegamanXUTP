@@ -6,6 +6,7 @@ import co.crhystian.xutp.domain.model.Character
 import co.crhystian.xutp.domain.model.Direction
 import co.crhystian.xutp.domain.model.GameConstants
 import co.crhystian.xutp.game.AnimationController
+import co.crhystian.xutp.game.GameKey
 import co.crhystian.xutp.game.InputState
 import co.crhystian.xutp.game.PhysicsEngine
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -74,8 +75,4 @@ class GameViewModel : ViewModel() {
             crouch = down,
         )
     }
-}
-
-enum class GameKey {
-    LEFT, RIGHT, JUMP, DASH, CROUCH
 }

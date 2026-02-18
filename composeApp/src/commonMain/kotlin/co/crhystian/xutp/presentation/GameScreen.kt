@@ -18,6 +18,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import co.crhystian.xutp.data.ZeroSpriteRepository
 import co.crhystian.xutp.domain.model.Character
 import co.crhystian.xutp.domain.model.GameConstants
+import co.crhystian.xutp.game.GameKey
 import org.jetbrains.compose.resources.imageResource
 import xutp.composeapp.generated.resources.Res
 import xutp.composeapp.generated.resources.escenario_de_pelea

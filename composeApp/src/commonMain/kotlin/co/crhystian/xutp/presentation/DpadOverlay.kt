@@ -13,6 +13,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import kotlin.math.PI
 import kotlin.math.atan2
@@ -141,4 +142,113 @@ private fun emitDirection(
     val up = degrees in -135f..-45f
 
     onDirectionChange(left, right, up, down)
+}
+
+// ============== PREVIEWS ==============
+
+/**
+ * Preview del DpadOverlay en estado neutral (sin tocar).
+ * Muestra el joystick con el knob centrado.
+ */
+@Preview
+@Composable
+private fun DpadOverlayPreview() {
+    Box(
+        modifier = Modifier
+            .size(200.dp)
+            .padding(16.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        DpadJoystickVisual(
+            knobOffset = Offset.Zero,
+            isTouching = false,
+        )
+    }
+}
+
+/**
+ * Preview del DpadOverlay simulando input hacia la derecha.
+ */
+@Preview
+@Composable
+private fun DpadOverlayRightPreview() {
+    Box(
+        modifier = Modifier
+            .size(200.dp)
+            .padding(16.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        DpadJoystickVisual(
+            knobOffset = Offset(50f, 0f),
+            isTouching = true,
+        )
+    }
+}
+
+/**
+ * Preview del DpadOverlay simulando input hacia arriba-izquierda.
+ */
+@Preview
+@Composable
+private fun DpadOverlayUpLeftPreview() {
+    Box(
+        modifier = Modifier
+            .size(200.dp)
+            .padding(16.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        DpadJoystickVisual(
+            knobOffset = Offset(-35f, -35f),
+            isTouching = true,
+        )
+    }
+}
+
+/**
+ * Componente visual del joystick extraído para previews.
+ * Permite mostrar diferentes estados sin necesidad de interacción.
+ */
+@Composable
+private fun DpadJoystickVisual(
+    knobOffset: Offset,
+    isTouching: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val density = LocalDensity.current
+    val outerRadiusDp = 70.dp
+    val outerRadiusPx = with(density) { outerRadiusDp.toPx() }
+
+    Canvas(
+        modifier = modifier.size(outerRadiusDp * 2)
+    ) {
+        val center = Offset(outerRadiusPx, outerRadiusPx)
+
+        // Círculo exterior
+        drawCircle(
+            color = Color.White.copy(alpha = 0.15f),
+            radius = outerRadiusPx,
+            center = center,
+        )
+        drawCircle(
+            color = Color.White.copy(alpha = 0.3f),
+            radius = outerRadiusPx,
+            center = center,
+            style = Stroke(width = 2f),
+        )
+
+        // Knob
+        val knobRadius = outerRadiusPx * 0.35f
+        val knobCenter = center + knobOffset
+        drawCircle(
+            color = Color.White.copy(alpha = if (isTouching) 0.5f else 0.25f),
+            radius = knobRadius,
+            center = knobCenter,
+        )
+        drawCircle(
+            color = Color.White.copy(alpha = if (isTouching) 0.7f else 0.4f),
+            radius = knobRadius,
+            center = knobCenter,
+            style = Stroke(width = 2f),
+        )
+    }
 }

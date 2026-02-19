@@ -19,11 +19,24 @@ import co.crhystian.xutp.data.ZeroSpriteRepository
 import co.crhystian.xutp.domain.model.Character
 import co.crhystian.xutp.domain.model.GameConstants
 import co.crhystian.xutp.game.GameKey
+import co.crhystian.xutp.presentation.controls.ActionButtonsOverlay
+import co.crhystian.xutp.presentation.controls.DpadOverlay
 import org.jetbrains.compose.resources.imageResource
 import xutp.composeapp.generated.resources.Res
 import xutp.composeapp.generated.resources.escenario_de_pelea
 import xutp.composeapp.generated.resources.plataforma
 
+/**
+ * Pantalla principal del juego.
+ * 
+ * Responsabilidades:
+ * - Renderizar el canvas del juego (fondo, plataforma, personaje)
+ * - Manejar el game loop con delta time
+ * - Coordinar inputs de teclado y controles táctiles
+ * 
+ * Los controles táctiles están separados en componentes independientes
+ * siguiendo el principio de responsabilidad única.
+ */
 @Composable
 fun GameScreen(viewModel: GameViewModel = viewModel { GameViewModel() }) {
     val zero by viewModel.zero.collectAsState()
@@ -109,10 +122,20 @@ fun GameScreen(viewModel: GameViewModel = viewModel { GameViewModel() }) {
             drawCharacterSprite(zero, zeroImage, scaleX, scaleY, needsFlip)
         }
 
-        // D-pad virtual superpuesto sobre el canvas
+        // D-pad virtual (lado izquierdo) - solo movimiento horizontal
         DpadOverlay(
-            onDirectionChange = { left, right, up, down ->
-                viewModel.onDpadInput(left, right, up, down)
+            onDirectionChange = { left, right ->
+                viewModel.onDpadInput(left, right)
+            }
+        )
+
+        // Botones de acción (lado derecho) - A: salto, B: dash, X: ataque, Y: especial
+        ActionButtonsOverlay(
+            onActionPressed = { action ->
+                viewModel.onActionButton(action, pressed = true)
+            },
+            onActionReleased = { action ->
+                viewModel.onActionButton(action, pressed = false)
             }
         )
     }

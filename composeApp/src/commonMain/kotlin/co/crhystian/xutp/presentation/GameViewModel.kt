@@ -9,6 +9,7 @@ import co.crhystian.xutp.game.AnimationController
 import co.crhystian.xutp.game.GameKey
 import co.crhystian.xutp.game.InputState
 import co.crhystian.xutp.game.PhysicsEngine
+import co.crhystian.xutp.presentation.controls.ActionButtonType
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -43,6 +44,9 @@ class GameViewModel : ViewModel() {
         _zero.value = updated
     }
 
+    /**
+     * Input desde teclado físico (desktop/hardware keyboard).
+     */
     fun onKeyDown(key: GameKey) {
         _input.value = when (key) {
             GameKey.LEFT -> _input.value.copy(left = true)
@@ -65,14 +69,28 @@ class GameViewModel : ViewModel() {
 
     /**
      * Input desde el D-pad virtual táctil.
-     * Reemplaza completamente el estado de input horizontal.
+     * Solo maneja movimiento horizontal (izquierda/derecha).
      */
-    fun onDpadInput(left: Boolean, right: Boolean, up: Boolean, down: Boolean) {
+    fun onDpadInput(left: Boolean, right: Boolean) {
         _input.value = _input.value.copy(
             left = left,
             right = right,
-            jump = up,
-            crouch = down,
         )
+    }
+
+    /**
+     * Input desde los botones de acción táctiles.
+     * 
+     * @param action Tipo de acción (JUMP, DASH, ATTACK, SPECIAL)
+     * @param pressed true si se presionó, false si se soltó
+     */
+    fun onActionButton(action: ActionButtonType, pressed: Boolean) {
+        _input.value = when (action) {
+            ActionButtonType.JUMP -> _input.value.copy(jump = pressed)
+            ActionButtonType.DASH -> _input.value.copy(dash = pressed)
+            // ATTACK y SPECIAL no tienen efecto por ahora
+            ActionButtonType.ATTACK -> _input.value
+            ActionButtonType.SPECIAL -> _input.value
+        }
     }
 }

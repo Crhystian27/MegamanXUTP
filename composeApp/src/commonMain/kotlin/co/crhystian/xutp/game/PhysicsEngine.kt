@@ -4,103 +4,198 @@ import co.crhystian.xutp.domain.model.Character
 import co.crhystian.xutp.domain.model.CharacterState
 import co.crhystian.xutp.domain.model.Direction
 import co.crhystian.xutp.domain.model.GameConstants
+import kotlin.math.abs
 
 /**
  * Motor de física puro (sin side effects).
- * Recibe el estado actual + input + deltaTime y retorna el nuevo estado.
- *
- * Usa aceleración/desaceleración para que el movimiento se sienta gradual:
- * - Al presionar una tecla, Zero acelera progresivamente hasta RUN_SPEED.
- * - Al soltar, desacelera hasta detenerse.
- * - Esto evita que un "medio pulso" mueva mucha distancia.
+ * Cada método es una función pura que transforma el estado.
  */
 object PhysicsEngine {
 
     fun update(character: Character, input: InputState, deltaTime: Float): Character {
-        var c = character
+        val deltaMs = (deltaTime * 1000).toLong()
+        
+        return character
+            .updateTimers(deltaMs)
+            .processDashInput(input)
+            .processDash(deltaMs)
+            .processMovement(input, deltaTime)
+            .processGravity(deltaTime)
+            .processJump(input)
+            .updatePosition(deltaTime)
+            .resolveCollisions()
+            .updateAnimationState(character.state)
+    }
 
-        // Determinar velocidad objetivo según input
-        val targetVelocityX = when {
-            input.left && !input.right -> -GameConstants.RUN_SPEED
-            input.right && !input.left -> GameConstants.RUN_SPEED
-            else -> 0f
+    // ==================== TIMERS ====================
+    
+    private fun Character.updateTimers(deltaMs: Long): Character {
+        val newCooldown = (dashCooldown - deltaMs).coerceAtLeast(0L)
+        val newFade = if (trailFadeRemaining > 0 && !isDashing) {
+            (trailFadeRemaining - deltaMs).coerceAtLeast(0L)
+        } else trailFadeRemaining
+        
+        return copy(
+            dashCooldown = newCooldown,
+            trailFadeRemaining = newFade,
+            dashTrail = if (newFade <= 0 && !isDashing) emptyList() else dashTrail
+        )
+    }
+
+    // ==================== DASH ====================
+    
+    private fun Character.processDashInput(input: InputState): Character {
+        // Reset input consumed cuando se suelta el botón
+        val resetConsumed = !input.dash && dashInputConsumed
+        
+        // Iniciar dash si es posible
+        val canDash = input.dash && !dashInputConsumed && dashCooldown <= 0 && !isDashing
+        
+        return when {
+            canDash -> copy(
+                isDashing = true,
+                dashTimeRemaining = GameConstants.DASH_DURATION_MS,
+                dashInputConsumed = true,
+                currentFrame = 0,
+                frameTimeAccumulator = 0L,
+            )
+            resetConsumed -> copy(dashInputConsumed = false)
+            else -> this
         }
+    }
 
-        // Aplicar aceleración/desaceleración suave
-        val currentVx = c.velocityX
-        val newVelocityX = if (targetVelocityX != 0f) {
-            // Acelerando hacia la velocidad objetivo
-            moveTowards(currentVx, targetVelocityX, GameConstants.ACCELERATION * deltaTime)
+    private fun Character.processDash(deltaMs: Long): Character {
+        if (!isDashing) return this
+        
+        val newDashTime = dashTimeRemaining - deltaMs
+        
+        return if (newDashTime <= 0) {
+            endDash()
         } else {
-            // Frenando: desacelerar hacia 0
-            moveTowards(currentVx, 0f, GameConstants.DECELERATION * deltaTime)
+            continueDash(newDashTime)
         }
-        c = c.copy(velocityX = newVelocityX)
+    }
 
-        // Actualizar dirección solo cuando hay input activo
-        c = when {
-            input.left && !input.right -> c.copy(direction = Direction.LEFT)
-            input.right && !input.left -> c.copy(direction = Direction.RIGHT)
-            else -> c
+    private fun Character.endDash(): Character {
+        // Velocidad 0 al terminar dash - el movimiento normal se encargará si hay input
+        return copy(
+            isDashing = false,
+            dashTimeRemaining = 0L,
+            dashCooldown = GameConstants.DASH_COOLDOWN_MS,
+            velocityX = 0f,
+            trailFadeRemaining = GameConstants.TRAIL_FADE_DURATION_MS,
+            lastDashFrame = currentFrame,
+            lastDashDirection = direction,
+            currentFrame = 0,
+            frameTimeAccumulator = 0L,
+        )
+    }
+
+    private fun Character.continueDash(newDashTime: Long): Character {
+        val dashVelocity = direction.toVelocity(GameConstants.DASH_SPEED)
+        val newTrail = (listOf(x) + dashTrail).take(GameConstants.DASH_TRAIL_COUNT)
+        
+        return copy(
+            dashTimeRemaining = newDashTime,
+            velocityX = dashVelocity,
+            dashTrail = newTrail,
+        )
+    }
+
+    // ==================== MOVEMENT ====================
+    
+    private fun Character.processMovement(input: InputState, deltaTime: Float): Character {
+        if (isDashing) return this
+        
+        val targetVelocity = input.toTargetVelocityX()
+        val newVelocityX = velocityX.moveTowards(targetVelocity, deltaTime)
+        val newDirection = input.toDirection() ?: direction
+        
+        return copy(velocityX = newVelocityX, direction = newDirection)
+    }
+
+    private fun InputState.toTargetVelocityX(): Float = when {
+        left && !right -> -GameConstants.RUN_SPEED
+        right && !left -> GameConstants.RUN_SPEED
+        else -> 0f
+    }
+
+    private fun InputState.toDirection(): Direction? = when {
+        left && !right -> Direction.LEFT
+        right && !left -> Direction.RIGHT
+        else -> null
+    }
+
+    private fun Float.moveTowards(target: Float, deltaTime: Float): Float {
+        val rate = if (target != 0f) GameConstants.ACCELERATION else GameConstants.DECELERATION
+        val maxDelta = rate * deltaTime
+        return when {
+            target > this -> minOf(this + maxDelta, target)
+            target < this -> maxOf(this - maxDelta, target)
+            else -> target
         }
+    }
 
-        // Aplicar gravedad
-        var newVelocityY = c.velocityY + GameConstants.GRAVITY * deltaTime
-        if (newVelocityY > GameConstants.MAX_FALL_SPEED) {
-            newVelocityY = GameConstants.MAX_FALL_SPEED
-        }
+    // ==================== GRAVITY & JUMP ====================
+    
+    private fun Character.processGravity(deltaTime: Float): Character {
+        if (isDashing) return copy(velocityY = 0f)
+        
+        val newVelocityY = (velocityY + GameConstants.GRAVITY * deltaTime)
+            .coerceAtMost(GameConstants.MAX_FALL_SPEED)
+        
+        return copy(velocityY = newVelocityY)
+    }
 
-        // Salto: solo si está en el suelo
-        if (input.jump && c.isOnGround) {
-            newVelocityY = GameConstants.JUMP_IMPULSE
-            c = c.copy(isOnGround = false)
-        }
-        c = c.copy(velocityY = newVelocityY)
+    private fun Character.processJump(input: InputState): Character {
+        if (!input.jump || !isOnGround || isDashing) return this
+        
+        return copy(velocityY = GameConstants.JUMP_IMPULSE, isOnGround = false)
+    }
 
-        // Actualizar posición
-        var newX = c.x + c.velocityX * deltaTime
-        var newY = c.y + c.velocityY * deltaTime
+    // ==================== POSITION & COLLISION ====================
+    
+    private fun Character.updatePosition(deltaTime: Float): Character = copy(
+        x = x + velocityX * deltaTime,
+        y = y + velocityY * deltaTime,
+    )
 
-        // Colisión con el suelo (plataforma)
-        if (newY >= GameConstants.PLATFORM_Y) {
-            newY = GameConstants.PLATFORM_Y
-            c = c.copy(velocityY = 0f, isOnGround = true)
-        }
+    private fun Character.resolveCollisions(): Character {
+        val groundedY = if (y >= GameConstants.PLATFORM_Y) GameConstants.PLATFORM_Y else y
+        val clampedX = x.coerceIn(0f, GameConstants.ORIGINAL_WIDTH)
+        
+        return copy(
+            x = clampedX,
+            y = groundedY,
+            velocityY = if (groundedY == GameConstants.PLATFORM_Y) 0f else velocityY,
+            isOnGround = groundedY == GameConstants.PLATFORM_Y,
+        )
+    }
 
-        // Limitar a los bordes del escenario
-        newX = newX.coerceIn(0f, GameConstants.ORIGINAL_WIDTH)
-
-        c = c.copy(x = newX, y = newY)
-
-        // Determinar estado de animación
-        // Usar un umbral pequeño para evitar que velocidades residuales
-        // de la desaceleración mantengan el estado RUNNING
-        val isMoving = kotlin.math.abs(c.velocityX) > 5f
+    // ==================== ANIMATION STATE ====================
+    
+    private fun Character.updateAnimationState(previousState: CharacterState): Character {
+        val isMoving = abs(velocityX) > 5f
         val newState = when {
-            !c.isOnGround && c.velocityY < 0 -> CharacterState.JUMPING
-            !c.isOnGround && c.velocityY >= 0 -> CharacterState.FALLING
+            isDashing -> CharacterState.DASHING
+            !isOnGround && velocityY < 0 -> CharacterState.JUMPING
+            !isOnGround && velocityY >= 0 -> CharacterState.FALLING
             isMoving -> CharacterState.RUNNING
             else -> CharacterState.IDLE
         }
-        c = c.copy(state = newState)
-
-        // Resetear frame si cambió de estado
-        if (newState != character.state) {
-            c = c.copy(currentFrame = 0, frameTimeAccumulator = 0L)
-        }
-
-        return c
+        
+        val resetFrame = newState != previousState
+        return copy(
+            state = newState,
+            currentFrame = if (resetFrame) 0 else currentFrame,
+            frameTimeAccumulator = if (resetFrame) 0L else frameTimeAccumulator,
+        )
     }
 
-    /**
-     * Mueve [current] hacia [target] en incrementos de [maxDelta].
-     * Nunca sobrepasa el target.
-     */
-    private fun moveTowards(current: Float, target: Float, maxDelta: Float): Float {
-        return when {
-            target > current -> minOf(current + maxDelta, target)
-            target < current -> maxOf(current - maxDelta, target)
-            else -> target
-        }
+    // ==================== HELPERS ====================
+    
+    private fun Direction.toVelocity(speed: Float): Float = when (this) {
+        Direction.RIGHT -> speed
+        Direction.LEFT -> -speed
     }
 }

@@ -26,6 +26,10 @@ object ZeroSpriteRepository {
                 Direction.RIGHT -> SpriteAnimation(runRightFrames)
                 Direction.LEFT -> SpriteAnimation(runLeftFrames)
             }
+            CharacterState.DASHING -> when (direction) {
+                Direction.RIGHT -> SpriteAnimation(dashRightFrames)
+                Direction.LEFT -> SpriteAnimation(dashLeftFrames)
+            }
             else -> when (direction) {
                 Direction.LEFT -> SpriteAnimation(idleFrames, needsFlip = false)
                 Direction.RIGHT -> SpriteAnimation(idleFrames, needsFlip = true)
@@ -72,5 +76,41 @@ object ZeroSpriteRepository {
         Res.drawable.mrzd10,
         Res.drawable.mrzd11,
         Res.drawable.mrzd12,
+    )
+
+    // Dash derecha: bz0-bz13 (14 frames)
+    private val dashRightFrames = listOf(
+        Res.drawable.bz0,
+        Res.drawable.bz1,
+        Res.drawable.bz2,
+        Res.drawable.bz3,
+        Res.drawable.bz4,
+        Res.drawable.bz5,
+        Res.drawable.bz6,
+        Res.drawable.bz7,
+        Res.drawable.bz8,
+        Res.drawable.bz9,
+        Res.drawable.bz10,
+        Res.drawable.bz11,
+        Res.drawable.bz12,
+        Res.drawable.bz13,
+    )
+
+    // Dash izquierda: bzi0-bzi13 (14 frames)
+    private val dashLeftFrames = listOf(
+        Res.drawable.bzi0,
+        Res.drawable.bzi1,
+        Res.drawable.bzi2,
+        Res.drawable.bzi3,
+        Res.drawable.bzi4,
+        Res.drawable.bzi5,
+        Res.drawable.bzi6,
+        Res.drawable.bzi7,
+        Res.drawable.bzi8,
+        Res.drawable.bzi9,
+        Res.drawable.bzi10,
+        Res.drawable.bzi11,
+        Res.drawable.bzi12,
+        Res.drawable.bzi13,
     )
 }

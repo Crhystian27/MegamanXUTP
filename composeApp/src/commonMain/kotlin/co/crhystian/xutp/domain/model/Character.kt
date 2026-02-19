@@ -17,4 +17,14 @@ data class Character(
     val isOnGround: Boolean = true,
     val currentFrame: Int = 0,
     val frameTimeAccumulator: Long = 0L,
+    // Dash state
+    val isDashing: Boolean = false,
+    val dashTimeRemaining: Long = 0L,
+    val dashCooldown: Long = 0L,
+    val dashInputConsumed: Boolean = false,
+    // Trail effect
+    val dashTrail: List<Float> = emptyList(),
+    val trailFadeRemaining: Long = 0L,
+    val lastDashFrame: Int = 0, // Último frame del dash para el fade
+    val lastDashDirection: Direction = Direction.RIGHT, // Dirección del dash para el fade
 )

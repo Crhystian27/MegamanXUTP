@@ -8,6 +8,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.scale
@@ -17,10 +18,14 @@ import androidx.compose.ui.unit.IntSize
 import androidx.lifecycle.viewmodel.compose.viewModel
 import co.crhystian.xutp.data.ZeroSpriteRepository
 import co.crhystian.xutp.domain.model.Character
+import co.crhystian.xutp.domain.model.CharacterState
 import co.crhystian.xutp.domain.model.GameConstants
 import co.crhystian.xutp.game.GameKey
 import co.crhystian.xutp.presentation.controls.ActionButtonsOverlay
 import co.crhystian.xutp.presentation.controls.DpadOverlay
+import co.crhystian.xutp.presentation.effects.TrailColors
+import co.crhystian.xutp.presentation.effects.TrailEffectConfig
+import co.crhystian.xutp.presentation.effects.drawSpriteTrail
 import org.jetbrains.compose.resources.imageResource
 import xutp.composeapp.generated.resources.Res
 import xutp.composeapp.generated.resources.escenario_de_pelea
@@ -72,6 +77,15 @@ fun GameScreen(viewModel: GameViewModel = viewModel { GameViewModel() }) {
     val zeroImage = imageResource(animation.frames[frameIndex])
     val needsFlip = animation.needsFlip
 
+    // Sprite para el trail del dash (último frame del dash durante el fade)
+    val dashTrailAnimation = ZeroSpriteRepository.getAnimation(
+        CharacterState.DASHING,
+        zero.lastDashDirection
+    )
+    val dashTrailFrameIndex = zero.lastDashFrame.coerceIn(0, dashTrailAnimation.frames.size - 1)
+    val dashTrailImage = imageResource(dashTrailAnimation.frames[dashTrailFrameIndex])
+    val dashTrailFlip = dashTrailAnimation.needsFlip
+
     Box(modifier = Modifier.fillMaxSize()) {
         // Canvas del juego
         Canvas(
@@ -118,7 +132,30 @@ fun GameScreen(viewModel: GameViewModel = viewModel { GameViewModel() }) {
                 filterQuality = FilterQuality.Low,
             )
 
-            // Zero
+            // Dash trail
+            val showTrail = (zero.isDashing || zero.trailFadeRemaining > 0) && zero.dashTrail.isNotEmpty()
+            if (showTrail) {
+                val trailImage = if (zero.isDashing) zeroImage else dashTrailImage
+                val trailFlip = if (zero.isDashing) needsFlip else dashTrailFlip
+                val fadeMultiplier = if (zero.isDashing) 1f 
+                    else zero.trailFadeRemaining.toFloat() / GameConstants.TRAIL_FADE_DURATION_MS
+                
+                drawSpriteTrail(
+                    image = trailImage,
+                    trailPositions = zero.dashTrail,
+                    currentY = zero.y,
+                    scaleX = scaleX,
+                    scaleY = scaleY,
+                    flip = trailFlip,
+                    fadeMultiplier = fadeMultiplier,
+                    config = TrailEffectConfig(
+                        trailColor = TrailColors.ZERO_RED,
+                        borderColor = TrailColors.ZERO_BORDER,
+                    ),
+                )
+            }
+
+            // Zero (sprite principal, siempre encima del trail)
             drawCharacterSprite(zero, zeroImage, scaleX, scaleY, needsFlip)
         }
 
@@ -157,11 +194,10 @@ private fun DrawScope.drawCharacterSprite(
     val drawY = (character.y * scaleY - spriteH).toInt()
 
     if (flip) {
-        // Flip horizontal: escalar -1 en X alrededor del centro del sprite
         scale(
             scaleX = -1f,
             scaleY = 1f,
-            pivot = androidx.compose.ui.geometry.Offset(centerX, (drawY + spriteH / 2f))
+            pivot = Offset(centerX, (drawY + spriteH / 2f))
         ) {
             drawImage(
                 image = image,

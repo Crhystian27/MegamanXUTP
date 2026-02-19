@@ -10,8 +10,10 @@ object GameConstants {
     const val ORIGINAL_HEIGHT = 384f
 
     // Velocidades en unidades del escenario original por segundo
+    // Original: 8 px/frame a ~60fps = ~480 px/s, ajustado para sentirse bien
     const val RUN_SPEED = 80f
-    const val DASH_SPEED = 150f
+    // Dash: más rápido que correr, proporcional al original (12/8 = 1.5x)
+    const val DASH_SPEED = 200f
 
     // Aceleración: cuánto tarda en llegar a velocidad máxima
     // A 400 px/s², llegar a 80 px/s toma 0.2 segundos (arranque gradual)
@@ -31,7 +33,14 @@ object GameConstants {
     // Plataforma
     const val PLATFORM_Y = 332f
 
+    // Dash: 14 frames de animación, más rápido
+    const val DASH_DURATION_MS = 500L
+    const val DASH_COOLDOWN_MS = 200L
+    const val DASH_TRAIL_COUNT = 9 // Número de ghosts en el trail
+    const val TRAIL_FADE_DURATION_MS = 200L // Duración del fade out post-dash
+
     // Animación: duración de cada frame en milisegundos
     const val IDLE_FRAME_DURATION_MS = 150L
     const val RUN_FRAME_DURATION_MS = 65L
+    const val DASH_FRAME_DURATION_MS = 36L // 14 frames en 500ms ≈ 36ms por frame
 }

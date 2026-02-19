@@ -6,59 +6,56 @@ Port de un juego de pelea 2D estilo Megaman X4, originalmente desarrollado en Ja
   <img src="docs/images/escenario.png" alt="Escenario de pelea" style="width: 500px; max-width: 100%;" />
 </p>
 
-## Estado actual
+## ¿Qué puedes hacer?
 
-El proyecto está en fase inicial. Por ahora se puede:
+### Movimiento fluido
+Controla a Zero con el D-pad táctil o teclado. El personaje acelera y desacelera de forma gradual, dando una sensación de peso y control real, no movimientos robóticos.
 
-- Mover al personaje Zero por el escenario usando teclado (flechas / WASD) o D-pad virtual táctil
-- Animación de reposo (6 frames) con flip horizontal según dirección
-- Animación de correr (13 frames por dirección)
-- Salto con gravedad y colisión con el suelo
-- Game loop con delta time (`withFrameNanos`) para velocidad consistente en cualquier dispositivo
-- Física con aceleración y desaceleración gradual
-- Pantalla forzada en landscape (Android e iOS)
-- Pantalla completa inmersiva en Android
+### Salto con física real
+Zero salta con impulso inicial y cae con gravedad. Puedes controlar la altura según cuánto mantengas presionado el botón.
 
-<table>
-  <tr>
-    <td style="text-align: center;"><img src="docs/images/zero_idle.png" alt="Zero reposo" style="width: 120px;" /><br/><sub>Reposo</sub></td>
-    <td style="text-align: center;"><img src="docs/images/zero_run.png" alt="Zero corriendo" style="width: 120px;" /><br/><sub>Correr</sub></td>
-  </tr>
-</table>
-
-## Stack
-
-| Tecnología | Uso |
-|---|---|
-| Kotlin 2.3.0 | Lenguaje principal |
-| Compose Multiplatform 1.10.0 | UI y Canvas para renderizado 2D |
-| KMP | Código compartido Android / iOS |
-| Gradle (Kotlin DSL) | Build system |
-
-## Arquitectura
+### Dash con efecto visual
+Presiona el botón B para ejecutar un dash rápido. Zero se desplaza a alta velocidad dejando un rastro de siluetas rojas que se desvanecen gradualmente, creando un efecto de movimiento dinámico y visualmente atractivo.
 
 ```
-co.crhystian.xutp/
-├── domain/model/     → Modelos puros: Character, CharacterState, Direction, GameConstants
-├── data/             → ZeroSpriteRepository: mapea estados a frames de sprites
-├── game/             → Lógica pura: PhysicsEngine, AnimationController, InputState
-├── presentation/     → GameViewModel, GameScreen (Canvas), DpadOverlay
-└── App.kt            → Entry point
+   [····]  [···]  [··]  [·]  [ZERO] →
+   siluetas rojas con opacidad decreciente
 ```
+
+El efecto de trail está diseñado para ser reutilizable: cada personaje puede tener su propio color característico (rojo para Zero, azul para Megaman, etc.).
+
+### Controles táctiles optimizados
+D-pad virtual en el lado izquierdo para movimiento, botones de acción en el lado derecho siguiendo el layout clásico de consolas:
+- **A** (arriba): Saltar
+- **B** (abajo derecha): Dash
+- **X** (centro): Ataque (próximamente)
+- **Y** (abajo izquierda): Especial (próximamente)
 
 ## Controles
 
 | Input | Acción |
 |---|---|
 | ← → / A D | Mover |
-| ↑ / W / Espacio | Saltar |
-| ↓ / S | Agacharse (pendiente) |
+| ↑ / W / K / Espacio | Saltar |
+| J / Shift | Dash |
 | D-pad táctil | Mover (pantalla táctil) |
+| Botón A | Saltar (táctil) |
+| Botón B | Dash (táctil) |
 
 ## Plataformas
 
-- Android (minSdk 29, targetSdk 36)
-- iOS (arm64, simulador arm64)
+- **Android** (minSdk 29) — APK listo para instalar
+- **iOS** (arm64) — Compilar desde Xcode
+
+Ambas plataformas comparten el 100% del código de juego gracias a Kotlin Multiplatform.
+
+## Stack técnico
+
+| Tecnología | Uso |
+|---|---|
+| Kotlin 2.3.0 | Lenguaje principal |
+| Compose Multiplatform 1.10.0 | UI y Canvas 2D |
+| KMP | Código compartido Android / iOS |
 
 ## Build
 
@@ -67,17 +64,19 @@ co.crhystian.xutp/
 ./gradlew :composeApp:assembleDebug
 
 # iOS (requiere Xcode)
-# Abrir iosApp/iosApp.xcodeproj y compilar desde Xcode
+# Abrir iosApp/iosApp.xcodeproj
 ```
 
-## Sprites
+## Sprites incluidos
 
-El juego usa sprites PNG del proyecto original, renombrados a lowercase para compatibilidad con Compose Resources. Los sprites de Zero incluidos actualmente:
+| Animación | Descripción |
+|---|---|
+| Reposo | Zero en posición de espera, respirando |
+| Correr | Ciclo completo de carrera en ambas direcciones |
+| Dash | Movimiento rápido con pose aerodinámica |
 
-| Animación | Prefijo | Frames |
-|---|---|---|
-| Reposo | `rez` | 6 (0-5) |
-| Correr derecha | `mrd` | 13 (0-12) |
-| Correr izquierda | `mrzd` | 13 (0-12) |
+Escenario original: 511×384 px, escalado automáticamente a cualquier pantalla.
 
-Escenario original: 511×384 px, escalado proporcionalmente a la pantalla del dispositivo.
+---
+
+*Proyecto educativo — sprites y concepto original de Capcom (Megaman X4)*

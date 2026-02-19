@@ -32,6 +32,7 @@ object AnimationController {
         return when (state) {
             CharacterState.IDLE -> GameConstants.IDLE_FRAME_DURATION_MS
             CharacterState.RUNNING -> GameConstants.RUN_FRAME_DURATION_MS
+            CharacterState.DASHING -> GameConstants.DASH_FRAME_DURATION_MS
             else -> GameConstants.RUN_FRAME_DURATION_MS
         }
     }

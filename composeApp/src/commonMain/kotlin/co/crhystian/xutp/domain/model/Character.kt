@@ -25,6 +25,10 @@ data class Character(
     // Trail effect
     val dashTrail: List<Float> = emptyList(),
     val trailFadeRemaining: Long = 0L,
-    val lastDashFrame: Int = 0, // Último frame del dash para el fade
-    val lastDashDirection: Direction = Direction.RIGHT, // Dirección del dash para el fade
+    val lastDashFrame: Int = 0,
+    val lastDashDirection: Direction = Direction.RIGHT,
+    // Sound events (se resetean cada frame, el ViewModel los consume)
+    val justJumped: Boolean = false,
+    val justLanded: Boolean = false,
+    val justDashed: Boolean = false,
 )

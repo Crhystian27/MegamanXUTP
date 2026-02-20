@@ -21,6 +21,7 @@ import co.crhystian.xutp.domain.model.Character
 import co.crhystian.xutp.domain.model.CharacterState
 import co.crhystian.xutp.domain.model.GameConstants
 import co.crhystian.xutp.game.GameKey
+import co.crhystian.xutp.game.audio.LocalSoundPlayer
 import co.crhystian.xutp.presentation.controls.ActionButtonsOverlay
 import co.crhystian.xutp.presentation.controls.DpadOverlay
 import co.crhystian.xutp.presentation.effects.TrailColors
@@ -46,6 +47,12 @@ import xutp.composeapp.generated.resources.plataforma
 fun GameScreen(viewModel: GameViewModel = viewModel { GameViewModel() }) {
     val zero by viewModel.zero.collectAsState()
     val focusRequester = remember { FocusRequester() }
+    
+    // Obtener SoundPlayer del CompositionLocal y pasarlo al ViewModel
+    val soundPlayer = LocalSoundPlayer.current
+    LaunchedEffect(soundPlayer) {
+        soundPlayer?.let { viewModel.setSoundPlayer(it) }
+    }
 
     // Game loop
     LaunchedEffect(Unit) {

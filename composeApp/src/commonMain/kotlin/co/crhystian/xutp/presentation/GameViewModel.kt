@@ -9,6 +9,8 @@ import co.crhystian.xutp.game.AnimationController
 import co.crhystian.xutp.game.GameKey
 import co.crhystian.xutp.game.InputState
 import co.crhystian.xutp.game.PhysicsEngine
+import co.crhystian.xutp.game.audio.GameSound
+import co.crhystian.xutp.game.audio.SoundPlayer
 import co.crhystian.xutp.presentation.controls.ActionButtonType
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -26,6 +28,13 @@ class GameViewModel : ViewModel() {
     val zero: StateFlow<Character> = _zero.asStateFlow()
 
     private val _input = MutableStateFlow(InputState())
+    
+    // Sound player - se inicializa desde la plataforma
+    private var soundPlayer: SoundPlayer? = null
+    
+    fun setSoundPlayer(player: SoundPlayer) {
+        soundPlayer = player
+    }
 
     fun onGameTick(deltaTimeNanos: Long) {
         val deltaSeconds = deltaTimeNanos / 1_000_000_000f
@@ -41,7 +50,29 @@ class GameViewModel : ViewModel() {
         val animation = ZeroSpriteRepository.getAnimation(updated.state, updated.direction)
         updated = AnimationController.advanceFrame(updated, deltaMs, animation.frames.size)
 
+        // 3. Sonidos (basados en eventos del frame)
+        processSoundEvents(updated)
+
         _zero.value = updated
+    }
+    
+    // ==================== SOUND EVENTS ====================
+    
+    private fun processSoundEvents(character: Character) {
+        if (character.justJumped) {
+            soundPlayer?.play(GameSound.JUMP)
+        }
+        if (character.justLanded) {
+            soundPlayer?.play(GameSound.LANDING)
+        }
+        if (character.justDashed) {
+            soundPlayer?.play(GameSound.DASH)
+        }
+    }
+    
+    override fun onCleared() {
+        super.onCleared()
+        soundPlayer?.release()
     }
 
     /**

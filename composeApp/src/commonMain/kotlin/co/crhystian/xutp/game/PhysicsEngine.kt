@@ -15,7 +15,11 @@ object PhysicsEngine {
     fun update(character: Character, input: InputState, deltaTime: Float): Character {
         val deltaMs = (deltaTime * 1000).toLong()
         
-        return character
+        // Guardamos si estaba en el suelo antes de procesar
+        val wasOnGround = character.isOnGround
+        
+        val updated = character
+            .resetEvents() // Limpiar eventos del frame anterior
             .updateTimers(deltaMs)
             .processDashInput(input)
             .processDash(deltaMs)
@@ -25,7 +29,20 @@ object PhysicsEngine {
             .updatePosition(deltaTime)
             .resolveCollisions()
             .updateAnimationState(character.state)
+        
+        // Detectar landing: estaba en el aire y ahora está en el suelo
+        val justLanded = !wasOnGround && updated.isOnGround
+        
+        return updated.copy(justLanded = justLanded)
     }
+    
+    // ==================== EVENTS ====================
+    
+    private fun Character.resetEvents(): Character = copy(
+        justJumped = false,
+        justLanded = false,
+        justDashed = false,
+    )
 
     // ==================== TIMERS ====================
     
@@ -58,6 +75,7 @@ object PhysicsEngine {
                 dashInputConsumed = true,
                 currentFrame = 0,
                 frameTimeAccumulator = 0L,
+                justDashed = true, // Evento para sonido
             )
             resetConsumed -> copy(dashInputConsumed = false)
             else -> this
@@ -150,7 +168,11 @@ object PhysicsEngine {
     private fun Character.processJump(input: InputState): Character {
         if (!input.jump || !isOnGround || isDashing) return this
         
-        return copy(velocityY = GameConstants.JUMP_IMPULSE, isOnGround = false)
+        return copy(
+            velocityY = GameConstants.JUMP_IMPULSE,
+            isOnGround = false,
+            justJumped = true, // Evento para sonido
+        )
     }
 
     // ==================== POSITION & COLLISION ====================

@@ -5,11 +5,17 @@ import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.remember
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import co.crhystian.xutp.game.audio.LocalSoundPlayer
+import co.crhystian.xutp.game.audio.SoundPlayer
 
 class MainActivity : ComponentActivity() {
+    private var soundPlayer: SoundPlayer? = null
+    
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
@@ -23,9 +29,19 @@ class MainActivity : ComponentActivity() {
 
         // Mantener pantalla encendida durante el juego
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        
+        // Inicializar SoundPlayer
+        soundPlayer = SoundPlayer().apply { initialize(this@MainActivity) }
 
         setContent {
-            App()
+            CompositionLocalProvider(LocalSoundPlayer provides soundPlayer) {
+                App()
+            }
         }
+    }
+    
+    override fun onDestroy() {
+        super.onDestroy()
+        soundPlayer?.release()
     }
 }

@@ -11,7 +11,6 @@ import android.media.SoundPool
 actual class SoundPlayer {
     private var soundPool: SoundPool? = null
     private val soundIds = mutableMapOf<GameSound, Int>()
-    private var context: Context? = null
     
     actual fun play(sound: GameSound) {
         val id = soundIds[sound] ?: return
@@ -29,8 +28,6 @@ actual class SoundPlayer {
      * Debe llamarse antes de usar play().
      */
     fun initialize(context: Context) {
-        this.context = context
-        
         val audioAttributes = AudioAttributes.Builder()
             .setUsage(AudioAttributes.USAGE_GAME)
             .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
@@ -41,11 +38,18 @@ actual class SoundPlayer {
             .setAudioAttributes(audioAttributes)
             .build()
         
-        // Cargar sonidos desde assets
+        // Cargar sonidos desde composeResources
+        // Ruta: assets/composeResources/xutp.composeapp.generated.resources/files/sounds/
         GameSound.entries.forEach { sound ->
-            val assetFd = context.assets.openFd("files/sounds/${sound.fileName}")
-            val id = soundPool?.load(assetFd, 1) ?: 0
-            soundIds[sound] = id
+            try {
+                val path = "composeResources/xutp.composeapp.generated.resources/files/sounds/${sound.fileName}"
+                val assetFd = context.assets.openFd(path)
+                val id = soundPool?.load(assetFd, 1) ?: 0
+                soundIds[sound] = id
+                assetFd.close()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 }
